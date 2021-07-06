@@ -1,4 +1,4 @@
-# SISCER 2020 Docker Container
+# SISCER 2021 Docker Container
 
 **Authors:** [David Benkeser](https://www.github.com/benkeser/)
 
@@ -7,7 +7,8 @@
 ## Description
 
 This repo contains all code used to create the Docker image that was used 
-to run the lab code during [Module 6 of UW SISCER 2020](https://si.biostat.washington.edu/suminst/archives/SISCER2021/CR2106). 
+to run the lab code during [Module 6 of UW SISCER 2021]
+(https://si.biostat.washington.edu/suminst/archives/SISCER2021/CR2106). 
 
 -----
 
@@ -15,7 +16,8 @@ to run the lab code during [Module 6 of UW SISCER 2020](https://si.biostat.washi
 
 This GitHub repository contains the source code needed to build the
 docker image that was used in class. The built image is also available on
-[DockerHub](https://cloud.docker.com/u/dbenkeser/repository/docker/dbenkeser/siscer2020).
+[DockerHub]
+(https://cloud.docker.com/u/dbenkeser/repository/docker/dbenkeser/siscer2021_module6).
 The code for the labs can be found in the `/R` directory.
 
 When the docker image is built, a number of `R` packages are installed and 
@@ -32,7 +34,8 @@ environment that was demonstrated in class), you need to [download docker](https
 From the command line you would execute the following command.
 
 ``` bash
-docker run -e PASSWORD=sosecret! -p 8787:8787 -d dbenkeser/siscer:latest
+docker run -e PASSWORD=sosecret! -p 8787:8787 -d
+dbenkeser/siscer2021_module6:latest
 ```
 
 Here the `-e` option is required to run the `rocker/rstudio` image that 
@@ -51,7 +54,7 @@ where `ipaddress` is the ip address of the cloud server.
 ## Issues
 
 If you encounter any bugs or can't remember how to run the container you can
-[file an issue](https://github.com/benkeser/siscer2020/issues).
+[file an issue](https://github.com/benkeser/siscer2021/issues).
 
 -----
 
