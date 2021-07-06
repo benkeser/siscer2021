@@ -7,7 +7,8 @@
 ## Description
 
 This repo contains all code used to create the Docker image that was used 
-to run the lab code during [Module 1 of UW SISCER 2020](https://si.biostat.washington.edu/suminst/siscer2020/modules/CR2001). 
+to run the lab code during [Module 6 of UW SISCER 2020]
+(https://si.biostat.washington.edu/suminst/archives/SISCER2021/CR2106). 
 
 -----
 
@@ -63,7 +64,7 @@ The contents of this repository are distributed under the MIT license:
 
     The MIT License (MIT)
     
-    Copyright (c) 2019 David C. Benkeser
+    Copyright (c) 2021- David C. Benkeser
     
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
