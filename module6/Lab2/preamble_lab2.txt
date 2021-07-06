@@ -1,0 +1,166 @@
+\usetheme{Berlin}
+\usepackage{scrextend}
+\changefontsizes{7.5pt}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[page number]
+
+\definecolor{mypurple}{RGB}{75,46,151}
+\definecolor{mypurple_dark}{RGB}{56.25,34.50,113.25}
+\definecolor{mypurple_darker}{RGB}{37.5,23,75.5}
+\definecolor{mypurple_light}{RGB}{100,61.3333,201.33333}
+\definecolor{codeback}{RGB}{244,243,243}
+\setbeamercolor*{palette primary}{use=structure,fg=white,bg=mypurple}
+\setbeamercolor*{palette secondary}{use=secondary,fg=white,bg=mypurple_dark}
+\setbeamercolor*{palette tertiary}{use=secondary,fg=white,bg=mypurple_darker}
+\setbeamercolor{itemize item}{fg=mypurple}
+\setbeamercolor{itemize subitem}{fg=mypurple_light}
+\setbeamercolor{block title}{use=structure,fg=white,bg=mypurple}
+\setbeamercolor{block body}{use=structure,fg=black,bg=white}
+\setbeamercolor{enumerate item}{fg=mypurple}
+\setbeamercolor{enumerate subitem}{fg=mypurple_light}
+
+
+\setbeamertemplate{enumerate item}
+{
+  \hbox{%
+    \usebeamerfont*{item projected}%
+    \usebeamercolor[mypurple]{item projected}% original: [bg]
+    \vrule width2.25ex height1.85ex depth.4ex%
+    \hskip-2.25ex%
+    \hbox to2.25ex{%
+      \hfil%
+      \color{white}\insertenumlabel% original: [fg]
+      \hfil}%
+  }%
+}
+
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\expit}{expit}
+\DeclareMathOperator*{\logit}{logit}
+
+\usepackage{listings}
+
+\lstset{ 
+  language=R,                     % the language of the code
+  deletekeywords={gamma,ps,or},
+  otherkeywords={!,!=,~,$,*,\&,\%/\%,\%*\%,\%\%,<-,<<-},
+  basicstyle=\ttfamily, % the size of the fonts that are used for the code
+  numbers=none,                   % where to put the line-numbers
+  numberstyle=\color{black},  % the style that is used for the line-numbers
+  stepnumber=1,                   % the step between two line-numbers. If it is 1, each line
+                                  % will be numbered
+  numbersep=5pt,                  % how far the line-numbers are from the code
+  backgroundcolor=\color{codeback},  % choose the background color. You must add \usepackage{color}
+  showspaces=false,               % show spaces adding particular underscores
+  showstringspaces=false,         % underline spaces within strings
+  showtabs=false,                 % show tabs within strings adding particular underscores
+  frame=none,                   % adds a frame around the code
+  rulecolor=\color{black},        % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. commens (green here))
+  tabsize=2,                      % sets default tabsize to 2 spaces
+  captionpos=b,                   % sets the caption-position to bottom
+  breaklines=true,                % sets automatic line breaking
+  breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+  keywordstyle=\color{mypurple},      % keyword style
+  commentstyle=\color{mypurple_light},   % comment style
+  stringstyle=\color{mypurple_darker},     % string literal style
+  upquote=true
+} 
+
+
+\usepackage{array,framed,amsmath,bm,mathabx,graphicx,tikz,bm}
+\usepackage[mathscr]{euscript}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks = true,
+    urlcolor = mypurple,
+    pdfpagelabels=false
+}
+\newcolumntype{x}[1]{>{\centering}m{#1}}
+
+\title[Modern inference in infinite-dimensional models]{\vspace{.02in}\\  Modern Statistical Learning Methods for\\ Observational Biomedical Data\\ \vspace{.05in}
+{--------------------------------------------------------------------------------}\\
+\vspace{.05in}
+\textbf{Lab 2:\\[.1em] TMLE for single timepoint interventions}\\ \vspace{.09in}}
+
+
+\author[Benkeser \& Carone]{%
+    \texorpdfstring{%
+    \begin{minipage}[1pt]{0.85\linewidth}
+        \vspace{.065in}
+    \begin{columns}
+          \column{.5\linewidth}
+          \centering
+          \textbf{David Benkeser} \\ Emory Univ.\\
+          \column{.5\linewidth}
+          \centering
+          \textbf{Marco Carone} \\ Univ. of Washington
+        \end{columns}
+    \vspace{.2in}
+    \centering{
+    \rule{4.0in}{0.75pt}\\[1em]
+  \textbf{\textcolor{mypurple}{MODULE 1}\\[.3em] Summer Institute in Statistics for 
+  Clinical and Epidemiological Research}\\[0.3em] July 2020\vspace{-.1in}}
+    \end{minipage}
+  }
+  {D. Benkeser, M. Carone, L. Kessler}
+}
+
+\date{}
+
+
+
+%\usepackage{lmodern}
+%\usepackage{multirow,varwidth} % used for SL table
+
+%\usetikzlibrary{arrows,shapes}
+
+% Define colors
+\definecolor{col1}{RGB}{213, 94, 0}
+\definecolor{col2}{RGB}{0, 158, 115}
+\definecolor{col3}{RGB}{86, 180, 233}
+
+\definecolor{mycol1}{HTML}{1B9E77}
+\definecolor{mycol2}{HTML}{D95F02}
+\definecolor{mycol3}{HTML}{7570B3}
+
+%\newcommand{\nl}{\newline}
+\newcommand{\pl}{\parallel}
+\newcommand{\openr}{\hbox{${\rm I\kern-.2em R}$}}
+\newcommand{\nl}{\newline}
+\newlength{\parskipbackup}
+\setlength{\parskipbackup}{\parskip}
+\newlength{\parindentbackup}
+\setlength{\parindentbackup}{\parindent}
+\let\notebackup\note
+\renewcommand{\note}[1]{\notebackup{%
+  \mode<handout>{\addtocounter{page}{-1}}%
+  \setlength{\parindent}{0ex}%
+  \setlength{\parskip}{10pt}%
+  \noindent%
+  {\normalsize{}#1}%
+  \setlength{\parskip}{\parskipbackup}%
+  \setlength{\parindent}{\parindentbackup}%
+}%
+}
+
+\AtBeginSection[]{
+\begin{frame}[noframenumbering]
+\frametitle{Outline}
+\tableofcontents[currentsection]
+\end{frame}
+}
+
+\AtBeginSubsection[]
+{
+  \begin{frame}[noframenumbering]
+    \frametitle{Outline}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+\usepackage{natbib}
+\bibpunct{(}{)}{,}{a}{}{;}
+\usepackage{bibentry}
+\nobibliography*

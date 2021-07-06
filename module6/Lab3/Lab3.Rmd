@@ -1,0 +1,681 @@
+---
+output: 
+  beamer_presentation: 
+    keep_tex: true
+    slide_level: 1
+    includes: 
+     in_header: preamble_lab3.txt
+    highlight: haddock 
+author: "__David Benkeser__ and __Marco Carone__"
+---
+
+```{r opts, eval = TRUE, echo = FALSE, message = FALSE}
+options(width = 60)
+```
+
+\thispagestyle{empty}
+\titlepage
+
+# Simulating data
+
+We will use the data discussed in Chapter 5 to illustrate key ideas. \begin{align*}
+Y\mid A_1=a_1,L_1=\ell_1,A_0=a_0\ &\sim\ \text{Normal}(1+a_1+2\ell_1,1)\\
+A_1\mid L_1=\ell_1,A_0=a_0\ &\sim\ \text{Bernoulli}(\expit(-1+\ell_1+a_0))\\
+L_1\mid A_0=a_0\ &\sim\ \text{Normal}(1+a_0,1)\\
+A_0\ &\sim\ \text{Bernoulli}(0.5)
+\end{align*}
+
+```{r simulating_data}
+# set a seed for reproducibility
+set.seed(212)
+n <- 5000
+A0 <- rbinom(n, size = 1, p = 0.5)
+L1 <- rnorm(n, mean = A0 + 1, sd = 1)
+A1 <- rbinom(n, size = 1, p = plogis(-1 + L1 + A0))
+Y <- rnorm(n, mean = 1 + A1 + 2 * L1, 1)
+```
+
+# Failure of naive approach to causal inference
+
+In this example, we demonstrate numerically the failure of the standard, regression-based approach to causal inference. 
+
+```{r fit_wrong_Reg}
+# fit a regression of Y ~ A1 + L1 + A0
+fit <- glm(Y ~ A1 + L1 + A0)
+# show results
+fit
+```
+
+```{r get_coef, echo = FALSE, eval = TRUE}
+betas <- round(as.numeric(fit$coef),2)
+```
+
+The fitted regression gives an estimate of the conditional mean of $Y$, $$
+	\widehat{E}[Y \mid A_1, L_1, A_0] = `r betas[1]` + `r betas[2]` A_1 + `r betas[3]` L_1 + `r betas[4]` A_0 \ . 
+$$
+
+# Failure of the naive approach to causal inference
+
+
+__Can causal effects be read off the regression of $Y$ on $(A_1,L_1,A_0)$?__ 
+
+\underline{Effect of differing $A_1$ values but same $A_0$ value:} \begin{align*}
+&\textcolor{forestgreen}{E[Y(1,1)-Y(1,0)]\ =\ 1} \\
+&\textcolor{forestgreen}{\widehat{E}[Y \mid A_1 = 1, L_1, A_0 = 1] - \widehat{E}[Y \mid A_1 = 0, L_1, A_0 = 1]} \hfill & \\[.1em]
+&\hspace{0.2in} \textcolor{forestgreen}{= `r betas[1]` + `r betas[2]` \times 1 + `r betas[3]` L_1 + `r betas[4]` \times 1 - (`r betas[1]` + `r betas[2]` \times 0 + `r betas[3]` L_1 + `r betas[4]` \times 1)} \hfill & \\
+&\hspace{0.2in} \textcolor{forestgreen}{= `r betas[2]`} \\
+& \\
+&\textcolor{forestgreen}{E[Y(0,1)-Y(0,0)]\ =\ 1} \\
+&\textcolor{forestgreen}{\widehat{E}[Y \mid A_1 = 1, L_1, A_0 = 0] - \widehat{E}[Y \mid A_1 = 0, L_1, A_0 = 0]} \hfill & \\[.1em]
+&\hspace{0.2in} \textcolor{forestgreen}{= `r betas[1]` + `r betas[2]` \times 1 + `r betas[3]` L_1 + `r betas[4]` \times 0 - (`r betas[1]` + `r betas[2]` \times 0 + `r betas[3]` L_1 + `r betas[4]` \times 0)} \hfill & \\
+&\hspace{0.2in} \textcolor{forestgreen}{= `r betas[2]`}
+\end{align*} 
+
+# Failure of the naive approach to causal inference
+
+__Can causal effects be read off the regression of $Y$ on $(A_1,L_1,A_0)$?__ 
+
+\underline{Effect of differing $A_1$ values but same $A_0$ value:} \begin{align*}
+&\textcolor{red}{E[Y(1,1)-Y(0,1)]\ =\ 2} \\
+&\textcolor{red}{\widehat{E}[Y \mid A_1 = 1, L_1, A_0 = 1] - \widehat{E}[Y \mid A_1 = 0, L_1, A_0 = 0]} \hfill & \\[.1em]
+&\hspace{0.2in} \textcolor{red}{= `r betas[1]` + `r betas[2]` \times 1 + `r betas[3]` L_1 + `r betas[4]` \times 1 - (`r betas[1]` + `r betas[2]` \times 1 + `r betas[3]` L_1 + `r betas[4]` \times 0)} \hfill & \\
+&\hspace{0.2in} \textcolor{red}{= `r betas[4]`} \\
+& \\
+&\textcolor{red}{E[Y(1,0)-Y(0,0)]\ =\ 2} \\
+&\textcolor{red}{\widehat{E}[Y \mid A_1 = 0, L_1, A_0 = 1] - \widehat{E}[Y \mid A_1 = 0, L_1, A_0 = 0]} \hfill & \\[.1em]
+&\hspace{0.2in} \textcolor{red}{= `r betas[1]` + `r betas[2]` \times 0 + `r betas[3]` L_1 + `r betas[4]` \times 1 - (`r betas[1]` + `r betas[2]` \times 0 + `r betas[3]` L_1 + `r betas[4]` \times 0)} \hfill & \\
+&\hspace{0.2in} \textcolor{red}{= `r betas[4]`}
+\end{align*} 
+
+# Failure of naive approach to causal inference
+
+__Can causal effects be read off the regression of $Y$ on $(A_1,L_1,A_0)$?__ 
+
+\underline{Effect of differing $A_1$ and $A_0$ values:} \begin{align*}
+&\textcolor{red}{E[Y(1,1)-Y(0,0)]\ =\ 3} \\
+&\textcolor{red}{\widehat{E}[Y \mid A_1 = 1, L_1, A_0 = 1] - \widehat{E}[Y \mid A_1 = 0, L_1, A_0 = 0]} \hfill & \\[.1em]
+&\hspace{0.2in} \textcolor{red}{= `r betas[1]` + `r betas[2]` \times 1 + `r betas[3]` L_1 + `r betas[4]` \times 1 - (`r betas[1]` + `r betas[2]` \times 0 + `r betas[3]` L_1 + `r betas[4]` \times 0)} \hfill & \\
+&\hspace{0.2in} \textcolor{red}{= `r betas[2]` + `r betas[4]` = `r betas[2] + betas[4]`} \\
+& \\
+&\textcolor{red}{E[Y(1,0)-Y(0,1)]\ =\ 1} \\
+&\textcolor{red}{\widehat{E}[Y \mid A_1 = 0, L_1, A_0 = 1] - \widehat{E}[Y \mid A_1 = 1, L_1, A_0 = 0]} \hfill & \\[.1em]
+&\hspace{0.2in} \textcolor{red}{= `r betas[1]` + `r betas[2]` \times 0 + `r betas[3]` L_1 + `r betas[4]` \times 1 - (`r betas[1]` + `r betas[2]` \times 1 + `r betas[3]` L_1 + `r betas[4]` \times 0)} \hfill & \\
+&\hspace{0.2in} \textcolor{red}{= `r betas[4]` - `r betas[2]` = `r -betas[2] + betas[4]`}
+\end{align*} 
+
+# Illustration of G-computation
+
+We will now demonstrate that the G-computation formula gives correct answers. 
+\vspace{0.2in}
+
+__Goal__: compute $\textcolor{red}{E[}\textcolor{blue}{E[Y\mid A_1=a_1,L_1,A_0=a_0]}\textcolor{red}{\mid A_0=a_0]}$ for different values of $(a_0, a_1)$. 
+\vspace{0.2in}
+
+__A helpful way to think about regression quantities__ \[
+E[ \underbrace{Z}_{\text{outcome}} \mid \underbrace{S = s}_{\text{stratification}}, \underbrace{C}_{\text{covariates}}] 
+\]
+
+
+Considering the \textcolor{blue}{inner expectation}, we have \[
+\textcolor{blue}{E[\underbrace{Y}_{\text{outcome}} \mid \underbrace{A_1=a_1,A_0=a_0}_{\text{stratification}}, \underbrace{L_1}_{\text{covariate}}]} \ . 
+\]
+
+# Illustration of G-computation
+
+For example, if $a_0 = 1, a_1 = 1$,
+
+```{r estimate_reg}
+# full data.frame
+full_data <- data.frame(A0 = A0, L1 = L1, A1 = A1, Y = Y)
+# subset data to observations with A0 = 1 & A1 = 1
+data_11 <- subset(full_data, A0 == 1 & A1 == 1)
+# fit regression of Y ~ L1
+fit_11 <- glm(Y ~ L1, data = data_11)
+fit_11
+```
+
+# Illustration of G-computation
+```{r get_coef11, echo = FALSE, eval = TRUE}
+betas11 <- round(as.numeric(fit_11$coef),2)
+```
+
+The fitted regression gives us the estimate \[
+	\textcolor{blue}{\widehat{E}[Y \mid A_1 = 1, L_1, A_0 = 1] = `r betas11[1]` + `r betas11[2]` L_1} \ . 
+\]
+
+Now, we need to estimate the \textcolor{red}{outer expectation}, \[
+\textcolor{red}{E[}\textcolor{blue}{\underbrace{E[ \ Y \mid A_1=1,L_1,A_0=1]}_{\text{outcome}}}\textcolor{red}{ \ \mid \underbrace{A_0=1}_{\text{stratification}}]}
+\]
+
+I.e., regression with outcome \textcolor{blue}{$`r betas11[1]` + `r betas11[2]` L_1$} in observations with $A_0 = 1$ and no covariates.
+
+# Illustration of G-computation
+
+```{r estimate_reg2}
+# get predicted value for everyone
+full_data$Q2n_11 <- predict(fit_11, newdata = full_data)
+# subset data to observations with A0 = 1
+data_1 <- subset(full_data, A0 == 1)
+# fit regression
+fit_1 <- glm(Q2n_11 ~ 1, data = data_1)
+# intercept is estimate of E[Y(1,1)]
+fit_1
+```
+
+# Exercise
+
+\textcolor{blue}{Use G-computation to obtain estimates of $E[Y(0,1)], E[Y(1,0)]$, and $E[Y(0,0)]$}
+
+```{r gcomp_ex}
+# subset data to observations with A0 = a0 & A1 = a1
+
+# fit regression of Y ~ L1 in A0/A1 subset data
+
+# get predicted value for everyone
+
+# subset data to observations with A0 = a0
+
+# fit intercept-only regression in A0 subset data
+
+# intercept is estimate of E[Y(a0,a1)]
+```
+
+# Solution
+\textcolor{blue}{Here is a function that computes the answer for any given `a0`, `a1`}
+
+```{r gcomp_sol}
+cfmean_gcomp <- function(a0, a1, full_data){
+	# subset data to observations with A0 = a0 & A1 = a1
+	data_a0a1 <- subset(full_data, A0 == a0 & A1 == a1)
+	# fit regression of Y ~ L1 in A0/A1 subset data
+	fit_a0a1 <- glm(Y ~ L1, data = data_a0a1)
+	# get predicted value for everyone
+	full_data$Q2n_a0a1 <- predict(fit_a0a1, newdata = full_data)
+	# subset data to observations with A0 = a0
+	data_a0 <- subset(full_data, A0 == a0)
+	# fit intercept-only regression in A0 subset data
+	fit_a0 <- glm(Q2n_a0a1 ~ 1, data = data_a0)
+	# intercept is estimate of E[Y(a0,a1)]
+	return(as.numeric(fit_a0$coefficients))
+}
+# evaluate the function 
+EY11_gcomp <- cfmean_gcomp(a0 = 1, a1 = 1, full_data)
+EY10_gcomp <- cfmean_gcomp(a0 = 1, a1 = 0, full_data)
+EY01_gcomp <- cfmean_gcomp(a0 = 0, a1 = 1, full_data)
+EY00_gcomp <- cfmean_gcomp(a0 = 0, a1 = 0, full_data)
+```
+
+# Solution
+
+\textcolor{blue}{Here are the estimated counterfactual means.}
+
+
+```{r gcomp_sol2}
+# should be ~ 6, 5, 4, 3
+round(c(EY11_gcomp, EY10_gcomp, EY01_gcomp, EY00_gcomp), 2)
+```
+
+# Illustration of IPTW
+
+Similarly, the IPTW identification result can be used. In this example, we can write \[
+	E[Y(a_0, a_1)] = E\biggl[ \frac{I(A_0 = a_0) I(A_1 = a_1)}{P(A_0 = a_0) P(A_1 = a_1 \mid A_0 = a_0, L_1)} \ Y \biggr] \ . 
+\]
+
+This result suggests using the estimate \[
+\widehat{E}[Y(a_0,a_1)] = \frac{1}{n} \sum_{i=1}^n \biggl[ \frac{I(A_{0i} = a_0) I(A_{1i} = a_1)}{\widehat{P}(A_{0} = a_0) \widehat{P}(A_1 = a_1 \mid A_0 = a_0, L_1 = L_{1i})} \ Y_i \biggr] \ . 
+\]
+
+__A helpful way to think about regression quantities__ \[
+P[ \underbrace{Z = z}_{\substack{\text{binary outcome} \\ I(Z = z)}} \mid \underbrace{S = s}_{\text{stratification}}, \underbrace{C}_{\text{covariates}}] 
+\]
+
+# Illustration of IPTW
+
+Here is a function that computes the IPTW estimator for any given `a0`, `a1`.
+
+```{r iptw_comp_fn}
+cfmean_iptw <- function(a0, a1, full_data){
+	# subset data to observations with A0 = a0
+	data_a0 <- subset(full_data, A0 == a0)
+	# fit logistic regression of I(A1 = a1) ~ L1 in a0 subset
+	ps_a1 <- glm(I(A1 == a1) ~ L1, data = data_a0, family = binomial())
+	# get predicted value for everybody 
+	full_data$phat_a1 <- predict(ps_a1, newdata = full_data, 
+	                             type = 'response')
+	# fit regression of I(A0 = a0) ~ 1 in full_data
+	ps_a0 <- glm(I(A0 == a0) ~ 1, data = full_data, family = binomial())
+	# get predicted value for everybody 
+	full_data$phat_a0 <- predict(ps_a0, newdata = full_data, 
+	                             type = 'response')
+	# compute iptw estimator
+	EYa0a1 <- with(full_data, mean( 
+      as.numeric(A0 == a0) * as.numeric(A1 == a1) / (phat_a0 * phat_a1) * Y 
+    ))
+	# intercept is estimate of E[Y(a0,a1)]
+	return(EYa0a1)
+}
+```
+
+# Illustration of IPTW
+
+```{r iptw_comp}
+# evaluate the function 
+EY11_iptw <- cfmean_iptw(a0 = 1, a1 = 1, full_data)
+EY10_iptw <- cfmean_iptw(a0 = 1, a1 = 0, full_data)
+EY01_iptw <- cfmean_iptw(a0 = 0, a1 = 1, full_data)
+EY00_iptw <- cfmean_iptw(a0 = 0, a1 = 0, full_data)
+# should be ~ 6,5,4,3
+round(c(EY11_iptw, EY10_iptw, EY01_iptw, EY00_iptw),2)
+```
+
+
+# The \texttt{ltmle} package 
+
+The \texttt{ltmle} package facilitates doubly-robust estimation about average treatment effects of longitudinal interventions. It is available on [CRAN](https://CRAN.R-project.org/package=ltmle) and [GitHub](https://github.com/joshuaschwab/ltmle). \vspace{-0.1in}
+
+* A [Journal of Statistical Software paper](https://www.jstatsoft.org/article/view/v081i01) is also available. 
+
+Learning objectives for today: \vspace{-0.1in}
+
+\begin{enumerate} \setlength\itemsep{0em}
+	\item understanding and executing basic calls to `ltmle`;
+	\item understanding interface between `ltmle` and `SuperLearner`;
+	\item executing calls to `ltmle` with censoring;
+	\item executing calls to `ltmle` for longitudinal treatment rules.
+\end{enumerate}
+
+
+# Simulated data
+
+To illustrate a more general setting, we simulate a data structure with three treatments. 
+
+```{r ltmle_data}
+# set seed for reproducibility & set sample size of 500
+set.seed(212); n <- 500
+# baseline variables
+L0 <- data.frame(L01 = rnorm(n), L02 = rbinom(n, 1, 0.5))
+# first treatment
+gA0 <- plogis(0.2 * L0$L01 - 0.2 * L0$L02)
+A0 <- rbinom(n = n, size = 1, prob = gA0)
+# intermediate variable at time 1
+L1 <- rnorm(n = n, mean = -A0 + L0$L01 - L0$L02, sd = 1)
+# second treatment decision
+gA1 <- plogis(0.2 * A0 - L1 + L0$L01)
+A1 <- rbinom(n = n, size = 1, prob = gA1)
+# intermediate variable at time 2
+L2 <- rnorm(n = n, mean = -A0*A1 + 2*A1 - L0$L01 + L1, sd = 2)
+# third treatment decision
+gA2 <- plogis(A0 - A1 + 2*A0*A1 - L0$L01 + 0.2 * L1*L0$L02)
+A2 <- rbinom(n = n, size = 1, prob = gA2)
+# outcome
+Y <- rnorm(n = n, mean = L0$L01 * L0$L02 * L2 - A0 - A1 - A2*A0*L2, sd = 2)
+# put into a data frame
+full_data <- data.frame(L0, A0 = A0, L1 = L1, 
+                        A1 = A1, L2 = L2, A2 = A2, Y = Y)
+```
+
+# Simulated data
+
+Take a look at the first six rows of data: 
+
+```{r head_data}
+head(full_data)
+```
+
+```{r echo = FALSE, eval = TRUE}
+compute_truth <- function(n = 1e5, a0 = 1, a1 = 1, a2 = 1){
+	set.seed(212)
+	L0 <- data.frame(L01 = rnorm(n), L02 = rbinom(n, 1, 0.5))
+	A0 <- rep(a0, n)
+	L1 <- rnorm(n = n, mean = -A0 + L0$L01 - L0$L02, sd = 1)
+	A1 <- rep(a1, n)
+	L2 <- rnorm(n = n, mean = -A0*A1 + 2*A1 - L0$L01 + L1, sd = 2)
+	A2 <- rep(a2, n)
+	# outcome
+	Y <- rnorm(n = n, mean = L0$L01 * L0$L02 * L2 - A0 - A1 - A2*A0*L2, sd = 2)
+	# put into a data frame
+	return(mean(Y))
+}
+```
+We are interested in estimating the effect of receiving treatment at all three time points versus receiving control at all three time points. \vspace{-0.1in} 
+
+\begin{itemize} \setlength\itemsep{0em}
+\item True value of $E[Y(1,1,1)] = `r round(compute_truth(), 2)`$. 
+\item True value of $E[Y(0,0,0)] = `r round(compute_truth(a0 = 0, a1 = 0, a2 = 0),2)`$. 
+\end{itemize}
+
+# Basic calls to \texttt{ltmle}
+
+A rundown of the most important options for the `ltmle` function: \vspace{-0.1in}
+
+* `data` = `data.frame` where the order of the columns corresponds to the time-ordering
+of variables (important!);
+* `Anodes` = names of treatment nodes;
+* `Cnodes` = names of censoring nodes;
+* `Lnodes` = names of time-varying covariate nodes;
+* `SL.library` = `list` with named entries `Q` and `g` specifying super learner libraries for the iterated outcome regressions and propensity scores;
+* `abar` = binary vector of length `length(Anodes)` or `list` of length 2 to contrast treatments;
+* `gbounds` = a vector of lower and upper bounds on estimated propensity scores;
+* `stratify` =  if `TRUE` then regressions are performed separately for each `abar`. If `FALSE` (default), then regressions are pooled over `abar`.
+
+For survival analysis:  \vspace{-0.1in}
+
+* `Ynodes` = names or indexes of time-varying outcome nodes;
+* `survivalOutcome` = `TRUE` if outcome is event that occurs only once, `FALSE` otherwise.
+* Alternatively, see package [`survtmle`](https://CRAN.R-project.org/package=survtmle).
+
+For treatment rules: \vspace{-0.1in}
+
+* `rule` function that can be applied to each row of data, which should return a numeric vector of treatment assignments of length `length(Anodes)`.
+
+# Basic calls to \texttt{ltmle}
+
+```{r load_drtmle, eval = TRUE, echo = FALSE, message = FALSE}
+library(ltmle); library(SuperLearner)
+```
+
+Let's start by making a simple call to `ltmle` and parsing the output. \vspace{-0.1in}
+
+* Get counterfactual mean for all treatment and all control. 
+* The super learner library for propensity scores and outcome regressions uses polynomial multivariate adaptive regression splines, logistic regression, and intercept-only regression. 
+* We fit regressions pooled over all treatments. 
+
+```{r simple_call_to_ltmle, echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE}
+set.seed(123)
+ltmle_fit1 <- ltmle(
+    data = full_data, 
+    Anodes = c("A0", "A1", "A2"),
+    Lnodes = c("L01","L02","L1","L2"),
+    Ynodes = "Y",
+    SL.library = list(Q = c("SL.earth", "SL.glm", "SL.mean"),
+                      g = c("SL.earth", "SL.glm", "SL.mean")),
+    stratify = FALSE, abar = list(treatment = c(1,1,1),
+                                  control = c(0,0,0))
+    )
+```
+
+# Basic calls to \texttt{ltmle} 
+
+\texttt{\#\# Some Ynodes are not in [0, 1], and Yrange was NULL, so all Y nodes are \\
+\#\# being transformed to (Y-min.of.all.Ys)/range.of.all.Ys} \vspace{-0.1in}
+
+* Feature/flaw of `ltmle`: outcomes automatically scaled to be between 0 and 1.
+* In general, this is fine. It prevents regression estimators from extrapolating outside the range of the observed data.  
+* However, super learner is called with `family = binomial()`, even though the outcome assumes values continuously between 0 and 1. This may [cause issues](https://github.com/joshuaschwab/ltmle/issues/15) with some wrappers (e.g., `SL.glmnet`). 
+
+\texttt{\#\# Qform not specified, using defaults: \\
+\#\# formula for L1: \\
+\#\# Q.kplus1 \textasciitilde{} L01 + L02 + A0 \\ 
+\#\# formula for L2: \\ 
+\#\# Q.kplus1 \textasciitilde{} L01 + L02 + A0 + L1 + A1 \\
+\#\# formula for Y: \\ 
+\#\# Q.kplus1 \textasciitilde{} L01 + L02 + A0 + L1 + A1 + L2 + A2}  \vspace{-0.1in}
+
+* `Qform` indicates what variables to include in each outcome regression. If `NULL` (default) it includes all variables from previous time points. 
+* Confusingly, not an indication that a `glm` was used for the outcome regressions. 
+* See the [function documentation](https://cran.r-project.org/web/packages/ltmle/ltmle.pdf#page=7) for more. 
+
+# Basic calls to \texttt{ltmle}
+
+\texttt{\#\# gform not specified, using defaults: \\ 
+\#\# formula for A0: \\ 
+\#\# A0 \textasciitilde{} L01 + L02 \\ 
+\#\# formula for A1: \\ 
+\#\# A1 \textasciitilde{} L01 + L02 + A0 + L1 \\
+\#\# formula for A2: \\ 
+\#\# A2 \textasciitilde{} L01 + L02 + A0 + L1 + A1 + L2 \\} \vspace{-0.05in}
+
+* `gform` indicates what variables to include in each propensity score. If `NULL` (default) it includes all variables from previous time points. 
+* Confusingly, not an indication that a `glm` was used for the propensity scores. 
+* See the [function documentation](https://cran.r-project.org/web/packages/ltmle/ltmle.pdf#page=7) for more. 
+
+\texttt{\#\# Warning messages: \\
+\#\# In predict.lm(object, newdata, se.fit, scale = 1, type = ifelse(type ==  : \\
+\#\# prediction from a rank-deficient fit may be misleading \\} \vspace{-0.05in}
+
+* Current version of `ltmle` is doing something silly to cause this error -- safe to ignore. 
+* [A fix](https://github.com/joshuaschwab/ltmle/pull/18) is pending. 
+
+# Basic calls to \texttt{ltmle} {.allowframebreaks}
+
+The `summary` method provides results.
+
+```{r ltmle_sum}
+summary(ltmle_fit1)	
+```
+\vspace{-0.1in}
+
+\begin{itemize} \setlength\itemsep{0em}
+\item \texttt{Treatment Estimate} pertains to $E[Y(1,1,1)]$. 
+\item \texttt{Control Estimate} pertains to $E[Y(0,0,0)]$.
+\item \texttt{Additive Treatment Effect} pertains to $E[Y(1,1,1)] - E[Y(0,0,0)]$. 
+\item All \texttt{p-value}'s are of null hypothesis that quantity equals 0. 
+\end{itemize}
+
+Unfortunately, the full super learner objects for each regression cannot be accessed from `ltmle_fit1`. However, the weights given to each regression at each time are saved. 
+
+# Basic class to \texttt{ltmle}
+
+```{r look_at_sl_weights}
+# weights for outcome regressions, because we set stratify = FALSE, the output in 
+# ltmle_fit1$fit$Q[[1]] is the same as in ltmle_fit1$fit$Q[[2]]
+ltmle_fit1$fit$Q[[1]]
+``` 
+
+# Basic class to \texttt{ltmle}
+
+```{r look_at_sl_weights2}
+# weights for propensity scores, because we set stratify = FALSE, the output in 
+# ltmle_fit1$fit$g[[1]] is the same as in ltmle_fit1$fit$g[[2]]
+ltmle_fit1$fit$g[[1]]
+``` 
+
+# Example write-up of LTMLE analysis
+
+__Methods__
+
+*We estimated the average counterfactual outcome if patients received treatment at all three time points versus if patients received control at all three time points using super learning and longitudinal targeted minimum loss-based estimation (van der Laan and Gruber, 2010). This requires estimation of an iterated outcome regression and the probability for treatment at each time point. At each time point, these regressions adjusted for measured patient characteristics prior to that timepoint. At baseline, these characteristics included [...]; at the second time point these included [...]; at the third time point these included [...]. Each regression was estimated using super learning. For the outcome regressions, we estimated the linear combination of candidate regression estimators that minimizes ten-fold cross-validated mean squared-error. We included three candidate regression estimators in the super learner: polynomial multivariate regression splines, main terms quasi-logistic regression, and intercept-only regression. The same set of candidate estimators was used for estimating the probability of treatment at each time point. However, in this case we estimated the logistic-linear combination of regression estimators that minimizes ten-fold cross-validated negative log-likelihood loss. We tested the null hypothesis that the average outcomes were the same under treatment versus control using a two-sided, level 0.05 Wald test with influence function-based standard errors estimates. Analyses were performed using the SuperLearner and ltmle R packages (Polley et al, 2018; Lendle et al 2017).* 
+
+# Example write-up of LTMLE analysis
+```{r echo = FALSE}
+tmp <- summary(ltmle_fit1)
+EY1 <- tmp$effect.measures$treatment$estimate
+EY1_ci <- tmp$effect.measures$treatment$CI
+EY0 <- tmp$effect.measures$control$estimate
+EY0_ci <- tmp$effect.measures$control$CI
+```
+__Results__
+
+Depending on the number of time points, it may be overwhelming to describe the super learners fit for each regression. It may suffice to provide general statements. 
+
+*Overall, the super learners for the iterated outcome regressions tended to give the most weight to polynomial multivariate adaptive regression splines, while for the treatment probability the main-terms logistic regression tended to have the most weight (Table 1, Appendix A).*
+
+*The estimated average counterfactual outcome if patients received treatment at all three time points was `r formatC(EY1, digits = 2, format = "f")` (95\% CI: `r formatC(EY1_ci[1], digits = 2, format = "f")`, `r formatC(EY1_ci[2], digits = 2, format = "f")`). On the other hand the estimated average counterfactual outcome if patients received control at all three time points was `r formatC(EY0, digits = 2, format = "f")` (95\% CI: `r formatC(EY0_ci[1], digits = 2, format = "f")`, `r formatC(EY0_ci[2], digits = 2, format = "f")`). Our test of the null hypothesis that these two quantities are equal rejected the null hypothesis (p-value $<$ 0.001).*
+
+Sensitivity analyses examining super learner performance are more difficult to conduct in these settings, particularly for the iterated outcome regressions. 
+
+# Example write-up of LTMLE analysis
+```{r echo = FALSE}
+w1 <- formatC(ltmle_fit1$fit$Q[[1]][[1]][,2], digits = 2, format = "f")
+w2 <- formatC(ltmle_fit1$fit$Q[[1]][[2]][,2], digits = 2, format = "f")
+w3 <- formatC(ltmle_fit1$fit$Q[[1]][[3]][,2], digits = 2, format = "f")
+```
+__Appendix__ 
+
+Iterated outcome regressions and super learner weights
+
+| Function name        | Description                     | Time 1    | Time 2    | Time 3    |
+| ---------------------|:--------------------------------|:---------:|:---------:|:---------:|
+| `SL.glm_All`         | main-terms linear regression    | `r w1[2]` | `r w2[2]` | `r w3[2]` |
+|                      | using all previous variables    |           |			 |			 |
+| `SL.mean_All`        | intercept-only regression       | `r w1[3]` | `r w2[3]` | `r w3[3]` |
+| `SL.earth_All`       | polynomial multivariate         | `r w1[1]` | `r w2[1]` | `r w3[1]` |
+|      				   | adaptive regression splines     |           |	 		 |			 |
+|                      | using all previous variables and|           |	 		 |			 |
+|					   | "default" tuning parameters 	 |           |			 |			 |
+
+# Missing data
+
+Often, participants are lost-to-follow-up during the course of the study. Here, we add some right-censoring to our data. 
+
+```{r ltmle_cens_data}
+set.seed(12)
+# censoring prior to time 1 (1 = censored)
+gC1 <- plogis(-2 + 0.05 * L0$L01)
+C1 <- rbinom(n = n, size = 1, prob = gC1)
+# censoring prior to time 2 (1 = censored)
+gC2 <- plogis(-3 + 0.05 * A0 + 0.025 * L1 - 0.025 * L0$L02)
+C2 <- rbinom(n = n, size = 1, prob = gC2)
+# censoring prior to time 3 (1 = censored)
+gC3 <- plogis(-3.5 + 0.05*A0*A1 - 0.025*L2 + 0.025 * L1)
+C3 <- rbinom(n = n, size = 1, prob = gC3)
+# make a cumulative indicator of censoring
+anyC1 <- C1 == 1; anyC2 <- C1 == 1 | C2 == 1 
+anyC3 <- C1 == 1 | C2 == 1 | C3 == 1
+# censored data set
+cens_data <- data.frame(L0, A0 = A0, 
+               C1 = BinaryToCensoring(is.censored = C1),
+               L1 = ifelse(anyC1, NA, L1), A1 = ifelse(anyC1, NA, A1), 
+               C2 = BinaryToCensoring(is.censored = ifelse(anyC1, NA, C2)),
+               L2 = ifelse(anyC2, NA, L2), A2 = ifelse(anyC2, NA, A2), 
+               C3 = BinaryToCensoring(is.censored = ifelse(anyC2, NA, C3)),
+               Y = ifelse(anyC3, NA, Y))
+```
+
+# Missing data
+
+```{r look_ltmle_cens_data}
+head(cens_data, 9)
+```
+
+# Missing data 
+
+We now make a call to `ltmle` using the censored data set. \vspace{-0.1in}
+
+* Get counterfactual mean for all treatment and all control. 
+* The super learner library for propensity scores (which now includes censoring!) and outcome regressions uses polynomial multivariate adaptive regression splines, logistic regression, and intercept-only regression. 
+* The specific formatting of `Cnodes` is important. The helper function `BinaryToCensoring` can help properly format these variables. 
+* We fit regressions pooled over all treatments using uncensored observations. 
+
+```{r simple_call_to_ltmle2, echo=TRUE, eval=TRUE, results='hide', message=FALSE, warning=FALSE}
+set.seed(123)
+ltmle_fit2 <- ltmle(
+    data = cens_data, 
+    Anodes = c("A0", "A1", "A2"),
+    Lnodes = c("L01","L02","L1","L2"),
+    Cnodes = c("C1","C2","C3"),
+    Ynodes = "Y",
+    SL.library = list(Q = c("SL.earth", "SL.glm", "SL.mean"),
+                      g = c("SL.earth", "SL.glm", "SL.mean")),
+    stratify = FALSE, abar = list(treatment = c(1,1,1),
+                                  control = c(0,0,0))
+    )
+```
+
+# Missing data {.allowframebreaks}
+
+```{r ltmle_sum2}
+summary(ltmle_fit2)
+```
+
+\texttt{\#\# earth glm Y: did not converge after 25 iterations}
+
+\texttt{\#\# glm.fit: algorithm did not converge} \vspace{-0.1in}
+
+* For some regressions, there are few observations with the outcome. 
+* E.g., `C3 ~ L01 + L02 + A0 + L1 + A1 + L2 + A2` has only `r as.numeric(table(cens_data$C3)[1])` censored observations. 
+* By default, `ltmle` tries use `V = 10` fold cross-validation, which leads to instability. 
+* Corrections for this are in the works.   
+
+Other notes: \vspace{-0.1in}
+
+* `ltmle_fit2$fit$g` additionally contains super learner risks/weights for censoring. 
+
+# Dynamic treatment regimes 
+
+Suppose we are interested in comparing two treatment regimes: \vspace{-0.1in}
+
+\begin{itemize} \setlength\itemsep{0em}
+\item Give all patients control until $L_k > -1$, then give treatment.
+\item E.g., monitor patients until back pain worsens, then give treatment.
+\item Give all patients control at every time point. 
+\end{itemize}
+
+In `ltmle` this is achieved by the `rule` and `regime` options. 
+
+* A `rule` is a `function` that looks at a patient's data and outputs a vector of binary treatment assignments for that patient. 
+* The `regimes` option will is a list of `rule`s. 
+
+# Dynamic treatment regimes
+
+Here we define a `rule` for "give all patients control until $L_k > -1$, then give treatment."
+
+```{r define_rule}
+rule1 <- function(pt_data){
+	# all patients start on control
+	A0 <- 0
+	# patients get treatment at time 1 if L1 > -1
+	# set patients with missing L1 to NA
+	if(!is.na(pt_data$L1)){
+		A1 <- ifelse(pt_data$L1 > -1, 1, 0)
+	}else{
+		A1 <- NA
+	}
+	# patients get treatment at time 2 if L2 > -1
+	# set patients with missing L2 to NA
+	if(!is.na(pt_data$L1)){
+		A2 <- ifelse(pt_data$L2 > -1, 1, 0)
+	}else{
+		A2 <- NA
+	}
+	return(c(A0,A1,A2))
+}
+```
+
+# Dynamic treatment regimes
+
+Now, we define a `rule` for give all patients control at every time point.
+
+```{r define_rule2}
+rule2 <- function(pt_data){
+	# all patients start on control
+	A0 <- 0
+	# and stay on control unless censored
+	A1 <- ifelse(is.na(pt_data$L1), NA, 0)
+	A2 <- ifelse(is.na(pt_data$L2), NA, 0)
+	return(c(A0,A1,A2))
+}
+```
+
+# Dynamic treatment regimes
+
+
+We now make a call to `ltmle` using the censored data set. \vspace{-0.1in}
+
+* Get counterfactual mean for the two treatment rules
+* Same super learner and other options as before. 
+
+```{r simple_call_to_ltmle3, echo=TRUE, eval=TRUE, results='hide', message=FALSE, warning=FALSE}
+set.seed(123)
+ltmle_fit3 <- ltmle(
+    data = cens_data, 
+    Anodes = c("A0", "A1", "A2"),
+    Lnodes = c("L01","L02","L1","L2"),
+    Cnodes = c("C1","C2","C3"),
+    Ynodes = "Y", stratify = FALSE, 
+    SL.library = list(Q = c("SL.earth", "SL.glm", "SL.mean"),
+                      g = c("SL.earth", "SL.glm", "SL.mean")),
+    rule = list(treatment = rule1, control = rule2)
+    )
+```
+
+# Dynamic treatment regimes {.allowframebreaks}
+
+```{r summary_dr_ltmle}
+summary(ltmle_fit3)
+```
+
+* The output under `Treatment` is whatever `rule` was first in the list.
+* The output under `Control` is whatever `rule` was second in the list. 
+
+
