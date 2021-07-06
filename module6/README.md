@@ -7,8 +7,7 @@
 ## Description
 
 This repo contains all code used to create the Docker image that was used 
-to run the lab code during [Module 6 of UW SISCER 2020]
-(https://si.biostat.washington.edu/suminst/archives/SISCER2021/CR2106). 
+to run the lab code during [Module 6 of UW SISCER 2020](https://si.biostat.washington.edu/suminst/archives/SISCER2021/CR2106). 
 
 -----
 
